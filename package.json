@@ -1,6 +1,6 @@
 {
   "name": "node-forge",
-  "version": "0.10.0",
+  "version": "0.10.0-sp2-for-passport-saml",
   "description": "JavaScript implementations of network transports, cryptography, ciphers, PKI, message digests, and various utilities.",
   "homepage": "https://github.com/digitalbazaar/forge",
   "author": {
@@ -60,7 +60,7 @@
     "dist/*.min.js.map"
   ],
   "engines": {
-    "node": ">= 6.0.0"
+    "node": ">= 6.13.0"
   },
   "keywords": [
     "aes",
