@@ -9,7 +9,7 @@ var RANDOM = require('../../lib/random');
 var RSA = require('../../lib/rsa');
 var UTIL = require('../../lib/util');
 
-(function() {
+(function () {
   var _pem = {
     privateKey: '-----BEGIN RSA PRIVATE KEY-----\r\n' +
       'MIICXQIBAAKBgQDL0EugUiNGMWscLAVM0VoMdhDZEJOqdsUMpx9U0YZI7szokJqQ\r\n' +
@@ -55,7 +55,7 @@ var UTIL = require('../../lib/util');
     '672813d9e6f4818f29b9becbb29da2032c5e422da97e0c39bfb7a2e7d568615a' +
     '5073af0337ff215a8e1b2332d668691f4fb731440055420c24ac451dd3c913f4';
 
-  describe('rsa', function() {
+  describe('rsa', function () {
     // check a pair
     function _pairCheck(pair) {
       // PEM check
@@ -86,7 +86,7 @@ var UTIL = require('../../lib/util');
     // create same prng
     function _samePrng() {
       var prng = RANDOM.createInstance();
-      prng.seedFileSync = function(needed) {
+      prng.seedFileSync = function (needed) {
         return UTIL.fillString('a', needed);
       };
       return prng;
@@ -94,10 +94,10 @@ var UTIL = require('../../lib/util');
 
     // generate pair in sync mode
     function _genSync(options) {
-      options = options || {samePrng: false};
+      options = options || { samePrng: false };
       var pair;
-      if(options.samePrng) {
-        pair = RSA.generateKeyPair(512, {prng: _samePrng()});
+      if (options.samePrng) {
+        pair = RSA.generateKeyPair(512, { prng: _samePrng() });
       } else {
         pair = RSA.generateKeyPair(512);
       }
@@ -107,21 +107,21 @@ var UTIL = require('../../lib/util');
 
     // generate pair in async mode
     function _genAsync(options, callback) {
-      if(typeof callback !== 'function') {
+      if (typeof callback !== 'function') {
         callback = options;
-        options = {samePrng: false};
+        options = { samePrng: false };
       }
       var genOptions = {
         bits: 512,
         workerScript: '/forge/prime.worker.js'
       };
-      if(options.samePrng) {
+      if (options.samePrng) {
         genOptions.prng = _samePrng();
       }
-      if('workers' in options) {
+      if ('workers' in options) {
         genOptions.workers = options.workers;
       }
-      RSA.generateKeyPair(genOptions, function(err, pair) {
+      RSA.generateKeyPair(genOptions, function (err, pair) {
         ASSERT.ifError(err);
         _pairCheck(pair);
         callback(pair);
@@ -132,23 +132,23 @@ var UTIL = require('../../lib/util');
     // NOTE: needs to match implementation details
     function isDeterministic(isPrng, isAsync, isPurejs) {
       // always needs to have a prng
-      if(!isPrng) {
+      if (!isPrng) {
         return false;
       }
-      if(UTIL.isNodejs) {
+      if (UTIL.isNodejs) {
         // Node versions >= 10.12.0 support native keyPair generation,
         // which is non-deterministic
-        if(isAsync && !isPurejs &&
+        if (isAsync && !isPurejs &&
           typeof require('crypto').generateKeyPair === 'function') {
           return false;
         }
-        if(!isAsync && !isPurejs &&
+        if (!isAsync && !isPurejs &&
           typeof require('crypto').generateKeyPairSync === 'function') {
           return false;
         }
       } else {
         // async browser code has race conditions with multiple workers
-        if(isAsync) {
+        if (isAsync) {
           return false;
         }
       }
@@ -156,11 +156,11 @@ var UTIL = require('../../lib/util');
       return true;
     }
 
-    it('should generate 512 bit key pair (sync)', function() {
+    it('should generate 512 bit key pair (sync)', function () {
       _genSync();
     });
 
-    it('should generate 512 bit key pair (sync+purejs)', function() {
+    it('should generate 512 bit key pair (sync+purejs)', function () {
       // save
       var purejs = FORGE.options.usePureJavaScript;
       // test pure mode
@@ -170,188 +170,188 @@ var UTIL = require('../../lib/util');
       FORGE.options.usePureJavaScript = purejs;
     });
 
-    it('should generate 512 bit key pair (async)', function(done) {
-      _genAsync(function() {
+    it('should generate 512 bit key pair (async)', function (done) {
+      _genAsync(function () {
         done();
       });
     });
 
-    it('should generate 512 bit key pair (async+purejs)', function(done) {
+    it('should generate 512 bit key pair (async+purejs)', function (done) {
       // save
       var purejs = FORGE.options.usePureJavaScript;
       // test pure mode
       FORGE.options.usePureJavaScript = true;
-      _genAsync(function() {
+      _genAsync(function () {
         // restore
         FORGE.options.usePureJavaScript = purejs;
         done();
       });
     });
 
-    it('should generate 512 bit key pair (async+workers)', function(done) {
+    it('should generate 512 bit key pair (async+workers)', function (done) {
       _genAsync({
         workers: -1
-      }, function() {
+      }, function () {
         done();
       });
     });
 
     it('should generate same 512 bit key pair (prng+sync,prng+sync)',
-      function() {
-      var pair1 = _genSync({samePrng: true});
-      var pair2 = _genSync({samePrng: true});
-      _pairCmp(pair1, pair2);
-    });
+      function () {
+        var pair1 = _genSync({ samePrng: true });
+        var pair2 = _genSync({ samePrng: true });
+        _pairCmp(pair1, pair2);
+      });
 
     it('should generate same 512 bit key pair (prng+sync,prng+sync+purejs)',
-      function() {
-      if(!isDeterministic(true, false, false) ||
-        !isDeterministic(true, false, true)) {
-        this.skip();
-      }
-      var pair1 = _genSync({samePrng: true});
-      // save
-      var purejs = FORGE.options.usePureJavaScript;
-      // test pure mode
-      FORGE.options.usePureJavaScript = true;
-      var pair2 = _genSync({samePrng: true});
-      // restore
-      FORGE.options.usePureJavaScript = purejs;
-      _pairCmp(pair1, pair2);
-    });
+      function () {
+        if (!isDeterministic(true, false, false) ||
+          !isDeterministic(true, false, true)) {
+          this.skip();
+        }
+        var pair1 = _genSync({ samePrng: true });
+        // save
+        var purejs = FORGE.options.usePureJavaScript;
+        // test pure mode
+        FORGE.options.usePureJavaScript = true;
+        var pair2 = _genSync({ samePrng: true });
+        // restore
+        FORGE.options.usePureJavaScript = purejs;
+        _pairCmp(pair1, pair2);
+      });
 
     it('should generate same 512 bit key pair ' +
-      '(prng+sync+purejs,prng+sync+purejs)', function() {
-      if(!isDeterministic(true, false, true) ||
-        !isDeterministic(true, false, true)) {
-        this.skip();
-      }
-      // save
-      var purejs = FORGE.options.usePureJavaScript;
-      // test pure mode
-      FORGE.options.usePureJavaScript = true;
-      var pair1 = _genSync({samePrng: true});
-      var pair2 = _genSync({samePrng: true});
-      // restore
-      FORGE.options.usePureJavaScript = purejs;
-      _pairCmp(pair1, pair2);
-    });
+      '(prng+sync+purejs,prng+sync+purejs)', function () {
+        if (!isDeterministic(true, false, true) ||
+          !isDeterministic(true, false, true)) {
+          this.skip();
+        }
+        // save
+        var purejs = FORGE.options.usePureJavaScript;
+        // test pure mode
+        FORGE.options.usePureJavaScript = true;
+        var pair1 = _genSync({ samePrng: true });
+        var pair2 = _genSync({ samePrng: true });
+        // restore
+        FORGE.options.usePureJavaScript = purejs;
+        _pairCmp(pair1, pair2);
+      });
 
     it('should generate same 512 bit key pair (prng+sync,prng+async)',
-      function(done) {
-      if(!isDeterministic(true, false, false) ||
-        !isDeterministic(true, true, false)) {
-        this.skip();
-      }
-      var pair1 = _genSync({samePrng: true});
-      _genAsync({samePrng: true}, function(pair2) {
-        _pairCmp(pair1, pair2);
-        done();
-      });
-    });
-
-    it('should generate same 512 bit key pair (prng+async,prng+sync)',
-      function(done) {
-      if(!isDeterministic(true, true, false) ||
-        !isDeterministic(true, false, false)) {
-        this.skip();
-      }
-      _genAsync({samePrng: true}, function(pair1) {
-        var pair2 = _genSync({samePrng: true});
-        _pairCmp(pair1, pair2);
-        done();
-      });
-    });
-
-    it('should generate same 512 bit key pair (prng+async,prng+async)',
-      function(done) {
-      if(!isDeterministic(true, true, false) ||
-        !isDeterministic(true, true, false)) {
-        this.skip();
-      }
-      var pair1;
-      var pair2;
-      // finish when both complete
-      function _done() {
-        if(pair1 && pair2) {
+      function (done) {
+        if (!isDeterministic(true, false, false) ||
+          !isDeterministic(true, true, false)) {
+          this.skip();
+        }
+        var pair1 = _genSync({ samePrng: true });
+        _genAsync({ samePrng: true }, function (pair2) {
           _pairCmp(pair1, pair2);
           done();
-        }
-      }
-      _genAsync({samePrng: true}, function(pair) {
-        pair1 = pair;
-        _done();
+        });
       });
-      _genAsync({samePrng: true}, function(pair) {
-        pair2 = pair;
-        _done();
-      });
-    });
 
-    it('should convert private key to/from PEM', function() {
+    it('should generate same 512 bit key pair (prng+async,prng+sync)',
+      function (done) {
+        if (!isDeterministic(true, true, false) ||
+          !isDeterministic(true, false, false)) {
+          this.skip();
+        }
+        _genAsync({ samePrng: true }, function (pair1) {
+          var pair2 = _genSync({ samePrng: true });
+          _pairCmp(pair1, pair2);
+          done();
+        });
+      });
+
+    it('should generate same 512 bit key pair (prng+async,prng+async)',
+      function (done) {
+        if (!isDeterministic(true, true, false) ||
+          !isDeterministic(true, true, false)) {
+          this.skip();
+        }
+        var pair1;
+        var pair2;
+        // finish when both complete
+        function _done() {
+          if (pair1 && pair2) {
+            _pairCmp(pair1, pair2);
+            done();
+          }
+        }
+        _genAsync({ samePrng: true }, function (pair) {
+          pair1 = pair;
+          _done();
+        });
+        _genAsync({ samePrng: true }, function (pair) {
+          pair2 = pair;
+          _done();
+        });
+      });
+
+    it('should convert private key to/from PEM', function () {
       var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
       ASSERT.equal(PKI.privateKeyToPem(privateKey), _pem.privateKey);
     });
 
-    it('should convert public key to/from PEM', function() {
+    it('should convert public key to/from PEM', function () {
       var publicKey = PKI.publicKeyFromPem(_pem.publicKey);
       ASSERT.equal(PKI.publicKeyToPem(publicKey), _pem.publicKey);
     });
 
-    it('should convert a PKCS#8 PrivateKeyInfo to/from PEM', function() {
+    it('should convert a PKCS#8 PrivateKeyInfo to/from PEM', function () {
       var privateKey = PKI.privateKeyFromPem(_pem.privateKeyInfo);
       var rsaPrivateKey = PKI.privateKeyToAsn1(privateKey);
       var pki = PKI.wrapRsaPrivateKey(rsaPrivateKey);
       ASSERT.equal(PKI.privateKeyInfoToPem(pki), _pem.privateKeyInfo);
     });
 
-    (function() {
+    (function () {
       var algorithms = ['aes128', 'aes192', 'aes256', '3des', 'des'];
-      algorithms.forEach(function(algorithm) {
-        it('should PKCS#8 encrypt and decrypt private key with ' + algorithm, function() {
+      algorithms.forEach(function (algorithm) {
+        it('should PKCS#8 encrypt and decrypt private key with ' + algorithm, function () {
           var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
           var encryptedPem = PKI.encryptRsaPrivateKey(
-            privateKey, 'password', {algorithm: algorithm});
+            privateKey, 'password', { algorithm: algorithm });
           privateKey = PKI.decryptRsaPrivateKey(encryptedPem, 'password');
           ASSERT.equal(PKI.privateKeyToPem(privateKey), _pem.privateKey);
         });
       });
     })();
 
-    (function() {
+    (function () {
       var algorithms = ['aes128', 'aes192', 'aes256'];
       var prfAlgorithms = ['sha1', 'sha224', 'sha256', 'sha384', 'sha512'];
-      algorithms.forEach(function(algorithm) {
-        prfAlgorithms.forEach(function(prfAlgorithm) {
+      algorithms.forEach(function (algorithm) {
+        prfAlgorithms.forEach(function (prfAlgorithm) {
           it('should PKCS#8 encrypt and decrypt private key with ' + algorithm +
-            ' encryption and ' + prfAlgorithm + ' PRF', function() {
-            var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
-            var encryptedPem = PKI.encryptRsaPrivateKey(
-              privateKey, 'password', {
+            ' encryption and ' + prfAlgorithm + ' PRF', function () {
+              var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
+              var encryptedPem = PKI.encryptRsaPrivateKey(
+                privateKey, 'password', {
                 algorithm: algorithm,
                 prfAlgorithm: prfAlgorithm
               });
-            privateKey = PKI.decryptRsaPrivateKey(encryptedPem, 'password');
-            ASSERT.equal(PKI.privateKeyToPem(privateKey), _pem.privateKey);
-          });
+              privateKey = PKI.decryptRsaPrivateKey(encryptedPem, 'password');
+              ASSERT.equal(PKI.privateKeyToPem(privateKey), _pem.privateKey);
+            });
         });
       });
     })();
 
-    (function() {
+    (function () {
       var algorithms = ['aes128', 'aes192', 'aes256', '3des', 'des'];
-      algorithms.forEach(function(algorithm) {
-        it('should legacy (OpenSSL style) encrypt and decrypt private key with ' + algorithm, function() {
+      algorithms.forEach(function (algorithm) {
+        it('should legacy (OpenSSL style) encrypt and decrypt private key with ' + algorithm, function () {
           var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
           var encryptedPem = PKI.encryptRsaPrivateKey(
-             privateKey, 'password', {algorithm: algorithm, legacy: true});
+            privateKey, 'password', { algorithm: algorithm, legacy: true });
           privateKey = PKI.decryptRsaPrivateKey(encryptedPem, 'password');
           ASSERT.equal(PKI.privateKeyToPem(privateKey), _pem.privateKey);
         });
       });
     })();
 
-    it('should verify signature', function() {
+    it('should verify signature', function () {
       var publicKey = PKI.publicKeyFromPem(_pem.publicKey);
       var md = MD.sha1.create();
       md.update('0123456789abcdef');
@@ -359,7 +359,7 @@ var UTIL = require('../../lib/util');
       ASSERT.ok(publicKey.verify(md.digest().getBytes(), signature));
     });
 
-    it('should sign and verify', function() {
+    it('should sign and verify', function () {
       var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
       var publicKey = PKI.publicKeyFromPem(_pem.publicKey);
       var md = MD.sha1.create();
@@ -368,7 +368,7 @@ var UTIL = require('../../lib/util');
       ASSERT.ok(publicKey.verify(md.digest().getBytes(), signature));
     });
 
-    it('should generate missing CRT parameters, sign, and verify', function() {
+    it('should generate missing CRT parameters, sign, and verify', function () {
       var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
 
       // remove dQ, dP, and qInv
@@ -383,7 +383,7 @@ var UTIL = require('../../lib/util');
       ASSERT.ok(publicKey.verify(md.digest().getBytes(), signature));
     });
 
-    it('should sign and verify with a private key containing only e, n, and d parameters', function() {
+    it('should sign and verify with a private key containing only e, n, and d parameters', function () {
       var privateKey = PKI.privateKeyFromPem(_pem.privateKey);
 
       // remove all CRT parameters from private key, so that it consists
@@ -399,7 +399,7 @@ var UTIL = require('../../lib/util');
       ASSERT.ok(publicKey.verify(md.digest().getBytes(), signature));
     });
 
-    (function() {
+    (function () {
       var tests = [{
         keySize: 1024,
         privateKeyPem: '-----BEGIN RSA PRIVATE KEY-----\r\n' +
@@ -513,11 +513,11 @@ var UTIL = require('../../lib/util');
         signatureWithAbcSalt: 'HCm0FI1jE6wQgwwi0ZwPTkGjssxAPtRh6tWXhNd2J2IoJYj9oQMMjCEElnvQFBa/l00sIsw2YV1tKyoTABaSTGV4vlJcDF+K0g/wiAf30TRUZo72DZKDNdyffDlH0wBDkNVW+F6uqdciJqBC6zz+unNh7x+FRwYaY8xhudIPXdyP',
         signatureWithCustomPrng: 'AGyN8xu+0yfCR1tyB9mCXcTGb2vdLnsX9ro2Qy5KV6Hw5YMVNltAt65dKR4Y8pfu6D4WUyyJRUtJ8td2ZHYzIVtWY6bG1xFt5rkjTVg4v1tzQgUQq8AHvRE2qLzwDXhazJ1e6Id2Nuxb1uInFyRC6/gLmiPga1WRDEVvFenuIA48'
       }];
-      for(var i = 0; i < tests.length; ++i) {
+      for (var i = 0; i < tests.length; ++i) {
         createTests(tests[i]);
       }
 
-      it('should ensure maximum message length for a 1024-bit key is exceeded', function() {
+      it('should ensure maximum message length for a 1024-bit key is exceeded', function () {
         /* For PKCS#1 v1.5, the message must be padded with at least eight bytes,
           two zero bytes and one byte telling what the block type is. This is 11
           extra bytes are added to the message. The test uses a message of 118
@@ -525,15 +525,15 @@ var UTIL = require('../../lib/util');
           at least 129 bytes long. This requires a key of 1025-bits. */
         var key = PKI.publicKeyFromPem(tests[0].publicKeyPem);
         var message = UTIL.createBuffer().fillWithByte(0, 118);
-        ASSERT.throws(function() {
+        ASSERT.throws(function () {
           key.encrypt(message.getBytes());
         });
       });
 
-      it('should ensure maximum message length for a 1025-bit key is not exceeded', function() {
+      it('should ensure maximum message length for a 1025-bit key is not exceeded', function () {
         var key = PKI.publicKeyFromPem(tests[1].publicKeyPem);
         var message = UTIL.createBuffer().fillWithByte(0, 118);
-        ASSERT.doesNotThrow(function() {
+        ASSERT.doesNotThrow(function () {
           key.encrypt(message.getBytes());
         });
       });
@@ -571,7 +571,7 @@ var UTIL = require('../../lib/util');
       function createTests(params) {
         var keySize = params.keySize;
 
-        it('should rsa encrypt using a ' + keySize + '-bit key', function() {
+        it('should rsa encrypt using a ' + keySize + '-bit key', function () {
           var message = 'it need\'s to be about 20% cooler'; // it need's better grammar too
 
           /* First step, do public key encryption */
@@ -587,13 +587,13 @@ var UTIL = require('../../lib/util');
           ASSERT.equal(key.decrypt(data), message);
         });
 
-        it('should rsa decrypt using a ' + keySize + '-bit key', function() {
+        it('should rsa decrypt using a ' + keySize + '-bit key', function () {
           var data = UTIL.decode64(params.encrypted);
           var key = PKI.privateKeyFromPem(params.privateKeyPem);
           ASSERT.equal(key.decrypt(data), 'too many secrets\n');
         });
 
-        it('should rsa sign using a ' + keySize + '-bit key and PKCS#1 v1.5 padding', function() {
+        it('should rsa sign using a ' + keySize + '-bit key and PKCS#1 v1.5 padding', function () {
           var key = PKI.privateKeyFromPem(params.privateKeyPem);
 
           var md = MD.sha1.create();
@@ -604,7 +604,7 @@ var UTIL = require('../../lib/util');
           ASSERT.equal(key.sign(md), signature);
         });
 
-        it('should verify an rsa signature using a ' + keySize + '-bit key and PKCS#1 v1.5 padding', function() {
+        it('should verify an rsa signature using a ' + keySize + '-bit key and PKCS#1 v1.5 padding', function () {
           var signature = UTIL.decode64(params.signature);
           var key = PKI.publicKeyFromPem(params.publicKeyPem);
 
@@ -619,7 +619,7 @@ var UTIL = require('../../lib/util');
           so they can't be compared easily -- instead they are just verified
           using the verify() function which is tested against OpenSSL-generated
           signatures. */
-        it('should rsa sign using a ' + keySize + '-bit key and PSS padding', function() {
+        it('should rsa sign using a ' + keySize + '-bit key and PSS padding', function () {
           var privateKey = PKI.privateKeyFromPem(params.privateKeyPem);
           var publicKey = PKI.publicKeyFromPem(params.publicKeyPem);
 
@@ -639,7 +639,7 @@ var UTIL = require('../../lib/util');
             publicKey.verify(md.digest().getBytes(), signature, pss), true);
         });
 
-        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding', function() {
+        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding', function () {
           var signature = UTIL.decode64(params.signaturePss);
           var key = PKI.publicKeyFromPem(params.publicKeyPem);
 
@@ -653,7 +653,7 @@ var UTIL = require('../../lib/util');
             key.verify(md.digest().getBytes(), signature, pss), true);
         });
 
-        it('should rsa sign using a ' + keySize + '-bit key and PSS padding using pss named-param API', function() {
+        it('should rsa sign using a ' + keySize + '-bit key and PSS padding using pss named-param API', function () {
           var privateKey = PKI.privateKeyFromPem(params.privateKeyPem);
           var publicKey = PKI.publicKeyFromPem(params.publicKeyPem);
 
@@ -676,7 +676,7 @@ var UTIL = require('../../lib/util');
             publicKey.verify(md.digest().getBytes(), signature, pss), true);
         });
 
-        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding using pss named-param API', function() {
+        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding using pss named-param API', function () {
           var signature = UTIL.decode64(params.signaturePss);
           var key = PKI.publicKeyFromPem(params.publicKeyPem);
 
@@ -693,7 +693,7 @@ var UTIL = require('../../lib/util');
             key.verify(md.digest().getBytes(), signature, pss), true);
         });
 
-        it('should rsa sign using a ' + keySize + '-bit key and PSS padding using salt "abc"', function() {
+        it('should rsa sign using a ' + keySize + '-bit key and PSS padding using salt "abc"', function () {
           var privateKey = PKI.privateKeyFromPem(params.privateKeyPem);
 
           var md = MD.sha1.create();
@@ -711,7 +711,7 @@ var UTIL = require('../../lib/util');
           ASSERT.equal(b64, params.signatureWithAbcSalt);
         });
 
-        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding using salt "abc"', function() {
+        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding using salt "abc"', function () {
           var signature = UTIL.decode64(params.signatureWithAbcSalt);
           var key = PKI.publicKeyFromPem(params.publicKeyPem);
 
@@ -728,9 +728,9 @@ var UTIL = require('../../lib/util');
             key.verify(md.digest().getBytes(), signature, pss), true);
         });
 
-        it('should rsa sign using a ' + keySize + '-bit key and PSS padding using custom PRNG', function() {
+        it('should rsa sign using a ' + keySize + '-bit key and PSS padding using custom PRNG', function () {
           var prng = RANDOM.createInstance();
-          prng.seedFileSync = function(needed) {
+          prng.seedFileSync = function (needed) {
             return UTIL.fillString('a', needed);
           };
           var privateKey = PKI.privateKeyFromPem(params.privateKeyPem);
@@ -751,9 +751,9 @@ var UTIL = require('../../lib/util');
           ASSERT.equal(b64, params.signatureWithCustomPrng);
         });
 
-        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding using custom PRNG', function() {
+        it('should verify an rsa signature using a ' + keySize + '-bit key and PSS padding using custom PRNG', function () {
           var prng = RANDOM.createInstance();
-          prng.seedFileSync = function(needed) {
+          prng.seedFileSync = function (needed) {
             return UTIL.fillString('a', needed);
           };
           var signature = UTIL.decode64(params.signatureWithCustomPrng);
@@ -775,7 +775,7 @@ var UTIL = require('../../lib/util');
       }
     })();
 
-    describe('bad data', function() {
+    describe('bad data', function () {
       // params for tests
 
       // public modulus / 256 bytes
@@ -822,27 +822,23 @@ var UTIL = require('../../lib/util');
         var md = MD.sha256.create();
         md.update(m);
 
-        ASSERT.throws(function() {
+        ASSERT.throws(function () {
           publicKey.verify(md.digest().getBytes(), S);
-        }, {
-          message: 'Unparsed DER bytes remain after ASN.1 parsing.'
-        });
+        }, /Unparsed DER bytes remain after ASN\.1 parsing\./);
       }
 
       function _checkBadDigestInfo(publicKey, S, skipTailingGarbage) {
         var md = MD.sha256.create();
         md.update(m);
 
-        ASSERT.throws(function() {
+        ASSERT.throws(function () {
           publicKey.verify(md.digest().getBytes(), S, undefined, {
             _parseAllDigestBytes: !skipTailingGarbage
           });
-        }, {
-          message: 'ASN.1 object does not contain a valid RSASSA-PKCS1-v1_5 DigestInfo value.'
-        });
+        }, /ASN\.1 object does not contain a valid RSASSA-PKCS1-v1_5 DigestInfo value\./);
       }
 
-      it('should check DigestInfo structure', function() {
+      it('should check DigestInfo structure', function () {
         var publicKey = RSA.setPublicKey(N, e);
         var S = UTIL.binary.hex.decode(
           'e7410e05bdc38d1c72fab784be41df3d3de2ae83894d9ec86cb5fe343d5dc7d45df2a36fc60363faf32f0d37ab457648af40a48a6c53ae7af0575e92cb1ffc236d55e1325af8c71b3ac313f2630fb498b8e1546093aca1ed56026a96cb525d991159a2d6ccbfd5ef63ae718f8ace2469e357ccf3f6a048bbf9760f5fb36b9dd38fb330eab504f05078b83f5d8bd95dce8fccc6b46babd56f678300f2b39083e53e04e79f503358a6222f8dd66b561fea3a51ecf3be16c9e2ea6ba8aaed9fbe6ba510ff752e4529385f759d4d6120b15f65534248ed5bbb1307a7d0a9838329697f5fbae91f48e478dcbb77190f0d173b6cb8b1299cf4202570d25d11a7862b47');
@@ -850,7 +846,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S);
       });
 
-      it('should check tailing garbage and DigestInfo [1]', function() {
+      it('should check tailing garbage and DigestInfo [1]', function () {
         var publicKey = RSA.setPublicKey(N, e);
         var S = UTIL.binary.hex.decode(
           'c2ad2fa23c246ee98c453d69023e7ec05956b48bd0e287341ba9d342ad49b0fff2bcbb9adc50f1ccbfc54106305cc74a88db89ff94901a08359893a08426373e7949a8794798233445af6c48bc6ccbe278bdeb62c31e40c3bf0014af2faadcc9ed7885756789a5b95c2a355fbb3f04412f42e0f9ed335ab51af8f091a62aaaaf6577422220917daaece3ca2f4e66dc4e0574356762592052b406768c31c25cf4c1754e6da9dc3440e238c4f9b25cccc174dd1b17b027e0f9ce2763b86f0e6871690ddd018d2e774bc968c9c6e907a000daf5044ba31a0b9eefbd7b4b1ec466d20bc1dd3f020cb1091af6b476416da3024ea046b09fbbbc4d2355da9a2bc6ddb9');
@@ -859,7 +855,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S, true);
       });
 
-      it('should check tailing garbage and DigestIfno [2]', function() {
+      it('should check tailing garbage and DigestIfno [2]', function () {
         var publicKey = RSA.setPublicKey(N, e);
         var S = UTIL.binary.hex.decode(
           'a7c5812d7fc0eef766a481aac18c8c48483daf9b5ffb6614bd98ebe4ecb746dd493cf5dd2cbe16ecaa0b52109b744930eda49316605fc823fd57a68b5b2c62e8c1b158b26e1547a2e33cdd79427d7c513f07d02261ffe43db197d8cddca2b5b43c1df85aaed6e91aadd44a46bff7f5c70f1acc1a193917e3908444632f30e69cfe95d8036d3b6ad318eefd3952804f16613c969e6d13604bb4e723dfad24c42c8d9b5b16a9f5a4b40dcf17b167d319017740f9cc0836436c14d51c3d8a697f1fa2b65196deb5c21b1559c7dea7f598007fa7320909825009f8bf376491c298d8155a382e967042db952e995d14b2f961e1b22f911d1b77895def1c7ef229c87e');
@@ -868,7 +864,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S, true);
       });
 
-      it('should check tailing garbage and DigestInfo [e=3]', function() {
+      it('should check tailing garbage and DigestInfo [e=3]', function () {
         var N = new JSBN.BigInteger(
           '29438513389594867490232201282478838726734464161887801289068585100507839535636256317277708295678804401391394313946142335874609638666081950936114152574870224034382561784743283763961349980806819078028975594777103388280272392844112380900374508170221075553517641170327441791034393719271744724924194371070527213991317221667249077972700842199037403799480569910844701030644322616045408039715278394572328099192023924503077673178227614549351191204851805076359472439160130994385433568113626206477097769842080459156024112389406200687233341779381667082591421496870666931268548504674362230725756397511775557878046572472650613407143');
         var e = new JSBN.BigInteger('3');
@@ -881,7 +877,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S, true);
       });
 
-      it('should check tailing garbage and DigestInfo [e=5]', function() {
+      it('should check tailing garbage and DigestInfo [e=5]', function () {
         var N = new JSBN.BigInteger(
           '29438513389594867490232201282478838726734464161887801289068585100507839535636256317277708295678804401391394313946142335874609638666081950936114152574870224034382561784743283763961349980806819078028975594777103388280272392844112380900374508170221075553517641170327441791034393719271744724924194371070527213991317221667249077972700842199037403799480569910844701030644322616045408039715278394572328099192023924503077673178227614549351191204851805076359472439160130994385433568113626206477097769842080459156024112389406200687233341779381667082591421496870666931268548504674362230725756397511775557878046572472650613407143');
         var e = new JSBN.BigInteger('5');
@@ -894,7 +890,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S, true);
       });
 
-      it('should check tailing garbage and DigestInfo [e=17]', function() {
+      it('should check tailing garbage and DigestInfo [e=17]', function () {
         var N = new JSBN.BigInteger(
           '928365641661298526294114382771769657905695995680009680444002258089796055192245321020911051590379097587133341820043795407471021630328875171430160513961779154294247563032373839871165519961382202811828883364651574763124699947662060849683176689286181021501400261976653416725246403933613615758181648971537689642956474563961490989544033629566558036444831495046301215543198107208071526376318961481739278769122885031686763776874806317352741548232110892401401727195758835975800106904020775937891505819798776295294696516670437057465296389148672556848624501468669295285428387365416747516180652630054765393335211528084329716917821726670549155619986875030049107668205064454104328601041931972319966348825621299693193542460060799067674344247887198933507132592770898312271636011037138984729256515515185153334743685479709085410902269777563691615719884708908509618352792737826421059819474305949001978916949447029010362775778664826653636547333219983468955600305523140183269580452792812503399042201081785972707218144968460623663922470814889738564730816412201128810370324070680245854669130551872958017494277468722193869883705529583737211815974801292292728082721785855274147991979220001018156560009927148374995236030383474031418802554714043680969417015155298092390680188406177667101020936206754551985229636814788735090951246816765035721775759652424641736739668936540450232814857289312589998505627375553038062765493408460941597629291231866042662108291164359496334978563287523685872262509560463225096226739991402761266388226652661345282274508037924611589455395655512013078629375186805951823181371561289129616028768733583565439798508002546685505512478002960132511531323264596144585611962969372672455541953777622436993987703564293487820434112162562492086865147598436647725445230861246093950020099084994990632102506848190196407855705745530407617253129971665939853842224965079537303198339986953399517682750248394628026225887174258267456078564070387327653989505416943226163989004419377363130466566387761757272563996086708621913140580687414698126490572618509858141748692837570235128900627675422927964369356691123905362222855545719945605604307263252851081309622569225811979426856464673233875589085773616373798857001344093594417138323005260179781153950803127773817702016534081581157881295739782000814998795398671806283018844936919299070562538763900037469485135699677248580365379125702903186174995651938469412191388327852955727869345476087173047665259892129895247785416834855450881318585909376917039');
         var e = new JSBN.BigInteger('17');
@@ -907,7 +903,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S, true);
       });
 
-      it('should check DigestInfo type octet [1]', function() {
+      it('should check DigestInfo type octet [1]', function () {
         var publicKey = RSA.setPublicKey(N, e);
         var S = UTIL.binary.hex.decode(
           'd8298a199e1b6ac18f3c0067a004bd9ff7af87be6ad857d73cc3d24ef06195b82aaddb0194f8e61fc31453b9163062255e8baf9c480200d0991a5f764f63d5f6afd283b9cd6afe54f0b7f738707b4eb6b8807539bb627e74db87a50413ab18e504e37975aad1edc612bc8ecad53b81ea249deb5a2acc27e6419c61ab9acec6608f5ae6a2985ba0b6f42d831bc6cce4b044864154b935cf179967d129e0ad8eda9bfbb638121c3ff13c64d439632e62250d4be928a3deb112ef76a025c5d918051e601878eac0049fc9d82be9ae3475deb7ca515c830c20b91b7bedf2184fef66aea0bde62ccd1659afbfd1342322b095309451b1a87e007e640e368fb68a13c9');
@@ -915,7 +911,7 @@ var UTIL = require('../../lib/util');
         _checkBadDigestInfo(publicKey, S);
       });
 
-      it('should check DigestInfo type octet [2]', function() {
+      it('should check DigestInfo type octet [2]', function () {
         var publicKey = RSA.setPublicKey(N, e);
         var S = UTIL.binary.hex.decode(
           'c1acdd3aef5f0439c254980295fc0d81b628df00726310a1041d79b5dd94c11d3bcaf0236763c77c25d9ab49522ed2a7d6ea3a4e483a29838acd48f2d60a790275f4cd46e4b1d09c527a426ec373e8a21746ad3ea541d3b85ba4c303ff793ea8a0a3458e93a7ec42ed66f675d7c299b0817ac95f7f45b2f48c09b3c070171f31a33ac789da9943da5dabcda1c95b42531d45484ac1efde0fe0519077debb93183e63de8f80d7f3cbfecb03cbb44ac4a2d56699e33fca0663b79ca627755fc4fc684b4ab358a0b4ac5b7e9d0cc18b6ab6300b40781502a1c03d34f31dd19d81195f8a44bc03a2595a706f06f0cb39b8e3f4afe06675fe7439b057f1200a06f4fd');
