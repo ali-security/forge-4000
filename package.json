@@ -1,6 +1,6 @@
 {
   "name": "node-forge",
-  "version": "0.10.0-sp2-for-passport-saml",
+  "version": "0.10.0",
   "description": "JavaScript implementations of network transports, cryptography, ciphers, PKI, message digests, and various utilities.",
   "homepage": "https://github.com/digitalbazaar/forge",
   "author": {
